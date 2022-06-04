@@ -22,7 +22,7 @@ const HTTPSnippet = require('httpsnippet');
  *                          ['cURL', 'Node']
  * @param {object} values   Optional: Values for the query parameters if present
  */
-const getEndpointSnippets = function (openApi, path, method, targets, values) {
+const getEndpointSnippets = function (openApi, path, method, targets, values, options) {
   // if optional parameter is not provided, set it to empty object
   if (typeof values === 'undefined') {
     values = {};
@@ -37,7 +37,8 @@ const getEndpointSnippets = function (openApi, path, method, targets, values) {
       ...getSnippetsForTargets(
         targets,
         snippet,
-        har.comment ? har.comment : undefined
+        har.comment ? har.comment : undefined,
+        options
       )
     );
   }
@@ -60,7 +61,7 @@ const getEndpointSnippets = function (openApi, path, method, targets, values) {
  * @param {array} targets   List of languages to create snippets in, e.g,
  *                          ['cURL', 'Node']
  */
-const getSnippets = function (openApi, targets) {
+const getSnippets = function (openApi, targets, options) {
   const endpointHarInfoList = OpenAPIToHar.getAll(openApi);
 
   const results = [];
@@ -70,7 +71,7 @@ const getSnippets = function (openApi, targets) {
     const snippets = [];
     for (const har of harInfo.hars) {
       const snippet = new HTTPSnippet(har);
-      snippets.push(...getSnippetsForTargets(targets, snippet, har.comment));
+      snippets.push(...getSnippetsForTargets(targets, snippet, har.comment, options));
     }
 
     results.push({
@@ -190,7 +191,7 @@ const formatTarget = function (targetStr) {
  * @param snippet {Object}              Snippet object from httpsnippet to convert into the target objects
  * @param mimeType {string | undefined} Additional information to add uniqueness to the produced snippets
  */
-const getSnippetsForTargets = function (targets, snippet, mimeType) {
+const getSnippetsForTargets = function (targets, snippet, mimeType, options) {
   const snippets = [];
   for (let j in targets) {
     const target = formatTarget(targets[j]);
@@ -199,10 +200,7 @@ const getSnippetsForTargets = function (targets, snippet, mimeType) {
       id: targets[j],
       ...(mimeType !== undefined && { mimeType: mimeType }),
       title: target.title,
-      content: snippet.convert(
-        target.language,
-        typeof target.library !== 'undefined' ? target.library : null
-      ),
+      content:  typeof target.library !== 'undefined' ? snippet.convert(target.language, target.library, options) : snippet.convert(target.language, options) 
     });
   }
   return snippets;
